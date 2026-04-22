@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <sys/resource.h>
+
 
 #define BUFFER_SIZE 1024
 
@@ -25,6 +27,21 @@ void run_sandboxed(char **argv) {
     dup2(pipefd[1], 2);
 
     close(pipefd[1]);
+
+    struct rlimit cpu_time_limit; /* Max running time */
+
+    cpu_time_limit.rlim_cur = 2; /* Setting max 2 seconds */
+    cpu_time_limit.rlim_max = 3;
+
+    struct rlimit mem_limit; /* Max memory allowed */
+
+    mem_limit.rlim_cur = 32 * 1024 * 1024; /* 32 MB */
+    mem_limit.rlim_max = 32 * 1024 * 1024;
+
+    if(setrlimit(RLIMIT_CPU, &cpu_time_limit) < 0 || setrlimit(RLIMIT_AS, &mem_limit) < 0) {
+      perror("setrlimit");
+      exit(EXIT_FAILURE);
+    }
 
     execvp(argv[0], argv);
     perror("Hermes: execvp failed");
@@ -56,7 +73,25 @@ void run_sandboxed(char **argv) {
       printf("[Hermes] Process exited normally with status: %d\n", WEXITSTATUS(status));
     }
     else if (WIFSIGNALED(status)) {
-      printf("[Hermes] Process terminated by signal with following code: %d\n", WTERMSIG(status));
+      int signal_num = WTERMSIG(status);
+
+      switch (signal_num) {
+      case SIGXCPU:
+        printf("[Hermes] Process killed: Time limit exceeded\n");
+        break;
+
+      case SIGSEGV:
+        printf("[Hermes] Process killed: Segmentation fault\n");
+        break;
+
+      case SIGKILL:
+        printf("[Hermes] Process killed: SIGKILL\n");
+        break;
+
+      default:
+        printf("[Hermes] Process terminated by signal with following code: %d\n", signal_num);
+        break;
+      }
     }
   }
 }
