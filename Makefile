@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 
-all: hermes payload infinite membomb
+all: hermes payload infinite membomb syscall_attempt
 
 hermes: hermes.c
 	$(CC) $(CFLAGS) -o hermes hermes.c
@@ -15,6 +15,8 @@ infinite: infinite.c
 membomb: membomb.c
 	$(CC) $(CFLAGS) -o membomb membomb.c
 
+syscall_attempt: syscall_attempt.c
+	$(CC) $(CFLAGS) -o syscall_attempt syscall_attempt.c
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
@@ -27,4 +29,4 @@ endif
 	git push origin $(BRANCH)
 
 clean:
-	rm -f hermes payload
+	rm -f hermes payload infinite membomb syscall_attempt
