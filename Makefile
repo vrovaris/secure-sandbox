@@ -1,13 +1,20 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 
-all: hermes payload
+all: hermes payload infinite membomb
 
 hermes: hermes.c
 	$(CC) $(CFLAGS) -o hermes hermes.c
 
 payload: payload.c
 	$(CC) $(CFLAGS) -o payload payload.c
+
+infinite: infinite.c
+	$(CC) $(CFLAGS) -o infinite infinite.c
+
+membomb: membomb.c
+	$(CC) $(CFLAGS) -o membomb membomb.c
+
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 

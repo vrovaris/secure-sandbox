@@ -41,8 +41,9 @@ void run_sandboxed(char **argv) {
     char buffer[BUFFER_SIZE];
     int bytes_read;
 
-    while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer)) > 0)) {
-      printf("%s\n", buffer);
+    while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0) {
+      buffer[bytes_read] = '\0';
+      printf("%s", buffer);
     }
 
     printf("--------------------------------------------------\n");
@@ -52,7 +53,7 @@ void run_sandboxed(char **argv) {
     waitpid(pid, &status, 0);
 
     if (WIFEXITED(status)) {
-      printf("[Hermes] Process exited normally with status: %d\n", WIFEXITED(status));
+      printf("[Hermes] Process exited normally with status: %d\n", WEXITSTATUS(status));
     }
     else if (WIFSIGNALED(status)) {
       printf("[Hermes] Process terminated by signal with following code: %d\n", WTERMSIG(status));
