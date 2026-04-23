@@ -16,7 +16,7 @@ killing the process (`SIGSYS`) if it attempts unauthorized actions like opening 
 
 ## Architecture & Trade-Offs:
 
-**Static vs. Dynamic Linking**
+* **Static vs. Dynamic Linking**
 This project enforces the use of statically linked binaries. Because Hermes uses an empty `chroot` jail for filesystem security, dynamically linked binaries
 fail to execute (as they cannot access the host's `/lib` directory to load the C Standard Library).
 Instead of providing a heavy root filesystem (like Docker), Hermes adopts the "Code Execution" threat mode, that is, the backend compiles user-submitted source
