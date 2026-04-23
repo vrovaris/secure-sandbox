@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 
 /* Needed for Seccomp-BPF syscall filtering */
 #include <linux/seccomp.h>
@@ -49,6 +50,9 @@ void enable_seccomp() {
     ALLOW_SYSCALL(SYS_set_tid_address), // 218: Threading setup
     ALLOW_SYSCALL(SYS_set_robust_list), // 273: Mutex/locking setup
 
+    /* Uncomment the following to test chroot jail */
+    //ALLOW_SYSCALL(SYS_openat), // Required to open files
+    //ALLOW_SYSCALL(SYS_close),
 
     BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL), /* Kill process if any other syscall is performed */
   };
@@ -82,11 +86,37 @@ void run_sandboxed(char **argv) {
     exit(EXIT_FAILURE);
   }
 
+  /* Create the jail directory and copy the executable there */
+  mkdir("/tmp/chroot_jail", 0755);
+
+  char copy_cmd[BUFFER_SIZE];
+  snprintf(copy_cmd, sizeof(copy_cmd), "cp %s /tmp/chroot_jail/app_bin", argv[0]);
+  system(copy_cmd);
+
+  argv[0] = "/app_bin"; /* Update where the file will be executed */
+
   pid = fork();
 
   if (pid == 0) { /* Untrusted code */
 
     close(pipefd[0]);
+
+    /* Move to the jail */
+    if (chdir("/tmp/chroot_jail") != 0) {
+      perror("chdir");
+      exit(EXIT_FAILURE);
+    }
+
+    /* Change root directory for the child process */
+    if (chroot("/tmp/chroot_jail") != 0) {
+      perror("chroot");
+      exit(EXIT_FAILURE);
+    }
+
+    if (setuid(1000) != 0) { /* Ensure we're back to user mode and not root */
+      perror("setuid");
+      exit(EXIT_FAILURE);
+    }
 
     dup2(pipefd[1], 1);
     dup2(pipefd[1], 2);

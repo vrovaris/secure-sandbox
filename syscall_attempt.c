@@ -6,7 +6,7 @@ int main() {
 
   FILE *fp = fopen("/etc/passwd", "r");
   if (fp == NULL) {
-    printf("SYCALL_ATTEMPT: Syscall blocked\n");
+    printf("SYCALL_ATTEMPT: File not found or Syscall blocked\n");
     return 1;
   }
   printf("SYSCALL_ATTEMPT: File opened successfully\n");

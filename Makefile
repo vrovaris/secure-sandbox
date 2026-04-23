@@ -24,6 +24,7 @@ git:
 ifndef m
 	$(error You must provide a message. Use: make git m="your message")
 endif
+	make clean
 	git add .
 	git commit -m "$(if $(m),$(m),Automated commit from Makefile)"
 	git push origin $(BRANCH)
