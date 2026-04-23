@@ -37,5 +37,12 @@
 *.out
 *.app
 
+infinite
+membomb
+syscall_attempt
+hermes
+payload
+
+
 # debug information files
 *.dwo
