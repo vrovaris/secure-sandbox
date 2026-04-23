@@ -15,6 +15,10 @@
 
 #define BUFFER_SIZE 1024
 
+#define ALLOW_SYSCALL(name) \
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, name, 0, 1), \
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW)
+
 void enable_seccomp() {
 
   struct sock_filter filter[] = {
@@ -22,16 +26,31 @@ void enable_seccomp() {
     BPF_STMT(BPF_LD | BPF_W | BPF_ABS, (offsetof(struct seccomp_data, nr))),
 
     /* Syscall whitelist */
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_read, 6, 0),
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_write, 5, 0),
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_exit, 4, 0),
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_exit_group, 3, 0),
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_brk, 2, 0),
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_mmap, 1, 0),
+    ALLOW_SYSCALL(SYS_execve),  // Required to start the program
+    ALLOW_SYSCALL(SYS_read),    // Required for IO
+    ALLOW_SYSCALL(SYS_write),   // Required for printf
+    ALLOW_SYSCALL(SYS_exit),    // Required to close normally
+    ALLOW_SYSCALL(SYS_exit_group),
+    ALLOW_SYSCALL(SYS_brk),     // Required for malloc
+    ALLOW_SYSCALL(SYS_mmap),    // Required for malloc
+    ALLOW_SYSCALL(SYS_prctl), // glibc static setup
+    ALLOW_SYSCALL(SYS_uname),      // glibc static setup
+    ALLOW_SYSCALL(SYS_set_tid_address), // glibc static setup
+    ALLOW_SYSCALL(SYS_set_robust_list), // glibc static setup
+    ALLOW_SYSCALL(SYS_ioctl),      // printf checking if stdout is a terminal
+    ALLOW_SYSCALL(SYS_fstat),      // printf checking stdout status
+    ALLOW_SYSCALL(SYS_readlinkat),   // glibc static setup
+    ALLOW_SYSCALL(SYS_rseq),
+    ALLOW_SYSCALL(SYS_getrandom),   // 318: To initialize the stack canary (buffer overflow protection)
+    ALLOW_SYSCALL(SYS_mprotect),    // 10:  Setting memory permissions (read/write/exec)
+    ALLOW_SYSCALL(SYS_prlimit64),   // 302: glibc checking its own limits
+    ALLOW_SYSCALL(SYS_fstat),       // 5:   Checking file info (for stdout/stderr)
+    ALLOW_SYSCALL(SYS_newfstatat),  // 262: Newer version of fstat used on some kernels
+    ALLOW_SYSCALL(SYS_set_tid_address), // 218: Threading setup
+    ALLOW_SYSCALL(SYS_set_robust_list), // 273: Mutex/locking setup
+
 
     BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL), /* Kill process if any other syscall is performed */
-
-    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW), /* Allow returning success */
   };
 
   struct sock_fprog prog = {

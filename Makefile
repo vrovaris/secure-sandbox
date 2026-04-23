@@ -7,16 +7,16 @@ hermes: hermes.c
 	$(CC) $(CFLAGS) -o hermes hermes.c
 
 payload: payload.c
-	$(CC) $(CFLAGS) -o payload payload.c
+	$(CC) $(CFLAGS) -static -o payload payload.c
 
 infinite: infinite.c
-	$(CC) $(CFLAGS) -o infinite infinite.c
+	$(CC) $(CFLAGS) -static -o infinite infinite.c
 
 membomb: membomb.c
-	$(CC) $(CFLAGS) -o membomb membomb.c
+	$(CC) $(CFLAGS) -static -o membomb membomb.c
 
 syscall_attempt: syscall_attempt.c
-	$(CC) $(CFLAGS) -o syscall_attempt syscall_attempt.c
+	$(CC) $(CFLAGS) -static -o syscall_attempt syscall_attempt.c
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
