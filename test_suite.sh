@@ -33,6 +33,7 @@ run_test "Time Limit" "timeout" "Time limit exceeded"
 run_test "Memory Limit" "memory" "Malloc failed"
 run_test "Seccomp Filter" "syscall" "Security breach"
 run_test "Filesystem Jail" "jail" "Jail works"
+run_test "Namespace" "namespace" "NAMESPACE: PID = "
 
 echo ""
 echo "--------------------------------------------------"

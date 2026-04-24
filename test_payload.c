@@ -43,6 +43,11 @@ void test_jail() {
   fclose(f);
 }
 
+void test_namespace() {
+
+  printf("NAMESPACE: PID = %d\n", getpid());
+}
+
 int main(int argc, char *argv[]) {
   if (argc < 2) return 1;
 
@@ -51,6 +56,7 @@ int main(int argc, char *argv[]) {
   if (strcmp(argv[1], "memory") == 0)  test_memory();
   if (strcmp(argv[1], "syscall") == 0) test_syscall();
   if (strcmp(argv[1], "jail") == 0)    test_jail();
+  if (strcmp(argv[1], "namespace") == 0) test_namespace();
 
   return 0;
 }
