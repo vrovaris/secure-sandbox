@@ -32,4 +32,4 @@ make
 
 # 2. Run the automated integration test suite
 chmod +x test_suite.sh
-sudo ./test_suite.sh# sandbox-project
+sudo ./test_suite.sh #sandbox-project

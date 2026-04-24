@@ -42,7 +42,8 @@ membomb
 syscall_attempt
 hermes
 payload
-
+namespace
+test_payload
 
 # debug information files
 *.dwo

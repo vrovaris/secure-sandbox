@@ -36,6 +36,7 @@
 typedef struct {
   char **argv;
   int pipe_write_end;
+  char *base_dir;
 } child_args_t;
 
 void enable_seccomp();
@@ -125,11 +126,30 @@ void run_sandboxed(char **argv) {
   }
 
   /* Create the jail directory and copy the executable there. Also create a new /proc to avoid any leaks to the host machine's info. */
-  mkdir("/tmp/chroot_jail", 0755);
-  mkdir("/tmp/chroot_jail/proc", 0755);
+  char base_dir[] = "/tmp/chroot_jail_XXXXXX";
 
-  char cmd[BUFFER_SIZE];
-  snprintf(cmd, sizeof(cmd), "cp %s /tmp/chroot_jail/app_bin", argv[0]);
+  if (mkdtemp(base_dir) == NULL) {
+    perror("mkdtemp");
+    exit(EXIT_FAILURE);
+  }
+
+  chmod(base_dir, 0755);
+
+  char proc_dir[sizeof(base_dir) + sizeof("/proc")];
+  snprintf(proc_dir, sizeof(proc_dir), "%s/proc", base_dir);
+
+  if (mkdir(proc_dir, 0755) != 0) {
+    perror("mkdir");
+    exit(EXIT_FAILURE);
+  }
+
+  char app_bin[sizeof(base_dir) + sizeof("/app_bin")];
+  snprintf(app_bin, sizeof(app_bin), "%s/app_bin", base_dir);
+
+  // TODO - Revisit system() safety
+  char cmd[BUFFER_SIZE  + sizeof(app_bin)];
+  snprintf(cmd, sizeof(cmd), "cp %s %s", argv[0], app_bin);
+
   system(cmd);
 
   argv[0] = "/app_bin"; /* Update where the file will be executed */
@@ -144,6 +164,7 @@ void run_sandboxed(char **argv) {
 
   args->argv = argv;
   args->pipe_write_end = pipefd[1];
+  args->base_dir = strdup(base_dir);
 
   /* Allocate a separate stack because of clone() */
   char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
@@ -186,17 +207,20 @@ void run_sandboxed(char **argv) {
   waitpid(pid, &status, 0);
 
   /* CLEANUP */
+
   /* Recollect the memory used */
+  free(args->base_dir);
   free(args);
   args = NULL;
   munmap(stack, STACK_SIZE);
 
   /* Unmount proc */
-  umount2("/tmp/chroot_jail/proc", MNT_DETACH);
 
-  snprintf(cmd, sizeof(cmd), "rm -rf /tmp/chroot_jail");
+  umount2(proc_dir, MNT_DETACH);
+
+  // TODO - Review system() safety
+  snprintf(cmd, sizeof(cmd), "rm -rf %s", base_dir);
   system(cmd);
-
 
   /* Exit status of child process */
   if (WIFEXITED(status)) {
@@ -241,24 +265,32 @@ int child_main(void *arg) {
 
   char **argv = args->argv;
   int pipe_write_end = args->pipe_write_end;
+  char *base_dir = args->base_dir;
 
   /* Move to the jail */
-  if (chdir("/tmp/chroot_jail") != 0) {
+  if (chdir(base_dir) != 0) {
     perror("chdir");
     exit(EXIT_FAILURE);
   }
 
   /* Change root directory for the child process */
-  if (chroot("/tmp/chroot_jail") != 0) {
+  if (chroot(base_dir) != 0) {
     perror("chroot");
     exit(EXIT_FAILURE);
   }
 
+  if (chdir("/") != 0) {
+    perror("chdir");
+    exit(EXIT_FAILURE);
+  }
+
   /* Remount proc */
-  mount("proc", "/proc", "proc", 0, NULL);
+  if (mount("proc", "/proc", "proc", 0, NULL) != 0) {
+    perror("mount");
+    exit(EXIT_FAILURE);
+  }
 
   /* Ensure we're back to user mode and not root */
-
   if (setuid(1000) != 0) {
     perror("setuid");
     exit(EXIT_FAILURE);

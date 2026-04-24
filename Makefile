@@ -34,4 +34,4 @@ endif
 	git push origin $(BRANCH)
 
 clean:
-	rm -f hermes payload infinite membomb syscall_attempt test_payload
+	rm -f hermes payload infinite membomb syscall_attempt test_payload namespace
