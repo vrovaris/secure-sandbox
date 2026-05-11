@@ -17,7 +17,6 @@ run_test() {
     echo -n "Testing $name... "
     output=$(sudo ./hermes ./test_payload $cmd 2>&1)
 
-    # Use grep -E for extended regex (allows the | OR operator)
     if echo "$output" | grep -E -q -i "$expected"; then
         echo -e "${GREEN}PASS${NC}"
     else
@@ -30,7 +29,8 @@ run_test() {
 # Use smaller, robust substrings that ignore exact formatting
 run_test "Normal Output" "output" "status: 42"
 run_test "Time Limit" "timeout" "Time limit exceeded|SIGKILL"
-run_test "Memory Limit" "memory" "Malloc failed"
+run_test "Virtual Memory Limit" "virtual_memory" "Malloc failed"
+run_test "Physical Memory Limit" "physical_memory" "Malloc failed"
 run_test "Seccomp Filter" "syscall" "Security breach"
 run_test "Filesystem Jail" "jail" "Jail works"
 run_test "Namespace" "namespace" "namespace: pid ="

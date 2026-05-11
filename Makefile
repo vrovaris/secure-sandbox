@@ -15,5 +15,14 @@ hermes: $(OBJ)
 test_payload: src/tests/test_payload.c
 	$(CC) $(CFLAGS) -static -o test_payload src/tests/test_payload.c
 
+git:
+ifndef m
+	$(error You must provide a message. Use: make git m="your message")
+endif
+	make clean
+	git add .
+	git commit -m "$(if $(m),$(m),Automated commit from Makefile)"
+	git push origin $(BRANCH)
+
 clean:
 	rm -f hermes src/*.o test_payload
