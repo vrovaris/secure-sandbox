@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes Code Engine</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: #252526;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .run-btn {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        .run-btn:hover { background-color: #1177bb; }
+        .run-btn:disabled { background-color: #555; cursor: not-allowed; }
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .editor-container, .output-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        textarea {
+            flex: 1;
+            background-color: #1e1e1e;
+            color: #dcdcaa;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            border: 1px solid #333;
+            padding: 10px;
+            resize: none;
+            outline: none;
+        }
+        .output-box {
+            flex: 1;
+            background-color: #000;
+            color: #4af626;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        h3 { margin-top: 0; font-size: 1rem; color: #858585; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>🛡️ Hermes Secure Sandbox</div>
+        <button id="runBtn" class="run-btn" onclick="submitCode()">Run Code</button>
+    </header>
+
+    <div class="container">
+        <!-- Code Editor -->
+        <div class="editor-container">
+            <h3>main.c</h3>
+            <textarea id="codeInput">
+#include <stdio.h>
+
+int main() {
+    printf("Hello from Hermes!\n");
+    return 0;
+}</textarea>
+        </div>
+
+        <!-- Terminal Output -->
+        <div class="output-container">
+            <h3>Terminal Output</h3>
+            <div id="terminal" class="output-box">Waiting for execution...</div>
+        </div>
+    </div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        const runBtn = document.getElementById('runBtn');
+
+        async function submitCode() {
+            const code = document.getElementById('codeInput').value;
+            terminal.innerText = "Submitting code...\n";
+            runBtn.disabled = true;
+
+            try {
+                // 1. Submit the code
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ language: 'c', code: code })
+                });
+                
+                const data = await response.json();
+                const jobId = data.job_id;
+                terminal.innerText += `Job ID received: ${jobId}\nWaiting for Sandbox...\n`;
+
+                // 2. Start polling for the result
+                pollStatus(jobId);
+            } catch (error) {
+                terminal.innerText += "\nError submitting code: " + error;
+                runBtn.disabled = false;
+            }
+        }
+
+        async function pollStatus(jobId) {
+            try {
+                const response = await fetch(`/status/${jobId}`);
+                const data = await response.json();
+
+                if (data.status === 'COMPLETED') {
+                    terminal.innerText += "\n--- EXECUTION FINISHED ---\n\n";
+                    terminal.innerText += data.output;
+                    runBtn.disabled = false;
+                } else {
+                    // If STILL RUNNING or QUEUED, wait 1 second and check again!
+                    terminal.innerText += ".";
+                    setTimeout(() => pollStatus(jobId), 1000);
+                }
+            } catch (error) {
+                terminal.innerText += "\nError checking status: " + error;
+                runBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
