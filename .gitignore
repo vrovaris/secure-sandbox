@@ -45,6 +45,9 @@ payload
 namespace
 test_payload
 hermes-api/run_server.sh
+hermes-api/workspace
+hermes-api/venv
+hermes-api/templates
 
 # debug information files
 *.dwo
