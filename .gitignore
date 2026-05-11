@@ -47,7 +47,23 @@ test_payload
 hermes-api/run_server.sh
 hermes-api/workspace
 hermes-api/venv
-hermes-api/templates
+hermes-api/template
+
+*.o
+hermes-core/hermes
+hermes-core/test_payload
+hermes-core/infinite
+hermes-core/membomb
+hermes-core/payload
+hermes-core/syscall_attempt
+
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+hermes-api/workspaces/*
+!hermes-api/workspaces/.gitkeeps
 
 # debug information files
 *.dwo
