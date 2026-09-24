@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 void test_output() {
   printf("NORMAL: Hello from the sandbox!\n");
@@ -65,6 +66,25 @@ void test_namespace() {
   printf("NAMESPACE: PID = %d\n", getpid());
 }
 
+// The three below exist for the website's gate: two attacks that check which
+// user they run as before acting, and a program that needs getppid. They are
+// harmless on an ordinary account, where setuid(0) and chmod both fail.
+void test_root() {
+  printf("TEST_ROOT: Running as uid %d, attempting to become root...\n", geteuid());
+  if (setuid(0) == 0) printf("RESULT: Became root (Seccomp failed)\n");
+  else printf("RESULT: setuid refused\n");
+}
+
+void test_chmod() {
+  printf("TEST_CHMOD: Running as uid %d, attempting to make /etc/passwd writable...\n", geteuid());
+  if (chmod("/etc/passwd", 0666) == 0) printf("RESULT: /etc/passwd is writable (Seccomp failed)\n");
+  else printf("RESULT: chmod refused\n");
+}
+
+void test_parent() {
+  printf("PARENT: PPID = %d\n", getppid());
+}
+
 int main(int argc, char *argv[]) {
   if (argc < 2) return 1;
 
@@ -75,6 +95,9 @@ int main(int argc, char *argv[]) {
   if (strcmp(argv[1], "syscall") == 0) test_syscall();
   if (strcmp(argv[1], "jail") == 0)    test_jail();
   if (strcmp(argv[1], "namespace") == 0) test_namespace();
+  if (strcmp(argv[1], "root") == 0)    test_root();
+  if (strcmp(argv[1], "chmod") == 0)   test_chmod();
+  if (strcmp(argv[1], "parent") == 0)  test_parent();
 
   return 0;
 }
